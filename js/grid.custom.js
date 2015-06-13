@@ -113,7 +113,7 @@
 				self.addJSONData = null;
 				self.grid = null;*/
 
-				var propOrMethods = ["formatCol", "sortData", "updatepager", "refreshIndex", "setHeadCheckBox", "constructTr", "formatter", "addXmlData", "addJSONData", "nav", "grid", "p"];
+				var propOrMethods = ["formatCol", "sortData", "updatepager", "refreshIndex", "setHeadCheckBox", "constructTr", "clearToolbar", "fixScrollOffsetAndhBoxPadding", "rebuildRowIndexes", "modalAlert", "toggleToolbar", "triggerToolbar", "formatter", "addXmlData", "addJSONData", "ftoolbar", "_inlinenav", "nav", "grid", "p"];
 				l = propOrMethods.length;
 				for (i = 0; i < l; i++) {
 					if (hasOwnProperty.call(self, propOrMethods[i])) {
@@ -238,6 +238,7 @@
 					editMsg = getRes("edit.msg"),
 					hoverClasses = getGuiStyles.call($t, "states.hover"),
 					highlightClass = getGuiStyles.call($t, "states.select"),
+					dataFieldClass = getGuiStyles.call($t, "filterToolbar.dataField"),
 					triggerToolbar = function () {
 						var sdata = {}, j = 0, sopt = {};
 						$.each(colModel, function () {
@@ -321,7 +322,7 @@
 							}
 						});
 						var sd = j > 0 ? true : false;
-						if (o.stringResult) {
+						if (o.stringResult || o.searchOperators || p.datatype === "local") {
 							var ruleGroup = "{\"groupOp\":\"" + o.groupOp + "\",\"rules\":[";
 							var gi = 0;
 							$.each(sdata, function (cmName, n) {
@@ -405,7 +406,7 @@
 						});
 						var sd = j > 0 ? true : false;
 						p.resetsearch = true;
-						if (o.stringResult) {
+						if (o.stringResult || o.searchOperators || p.datatype === "local") {
 							var ruleGroup = "{\"groupOp\":\"" + o.groupOp + "\",\"rules\":[";
 							var gi = 0;
 							$.each(sdata, function (i, n) {
@@ -521,14 +522,12 @@
 					timeoutHnd,
 					tr = $("<tr class='ui-search-toolbar' role='row'></tr>");
 
-				if (o.searchOperators || p.datatype === "local") { o.stringResult = true; }
-
 				// create the row
 				$.each(colModel, function (ci) {
 					var cm = this, soptions, mode = "filter", surl, self, select = "", sot, so, i, searchoptions = cm.searchoptions, editoptions = cm.editoptions,
 						th = $("<th role='columnheader' class='ui-state-default ui-th-column ui-th-" + p.direction + "'></th>"),
-						thd = $("<div style='position:relative;height:auto;padding-right:0.3em;padding-left:0.3em;'></div>"),
-						stbl = $("<table class='ui-search-table'" + (jgrid.msie && jgrid.msiever() < 8 ? " cellspacing='0'" : "") + "><tr><td class='ui-search-oper'></td><td class='ui-search-input'></td><td class='ui-search-clear'></td></tr></table>");
+						thd = $("<div style='position:relative;height:auto;'></div>"),
+						stbl = $("<table class='ui-search-table'" + (jgrid.msie && jgrid.msiever() < 8 ? " cellspacing='0'" : "") + "><tr><td class='ui-search-oper'></td><td class='ui-search-input'></td><td class='ui-search-clear' style='width:1px'></td></tr></table>");
 					if (this.hidden === true) { $(th).css("display", "none"); }
 					this.search = this.search === false ? false : true;
 					if (this.stype === undefined) { this.stype = "text"; }
@@ -565,7 +564,7 @@
 						}
 						if (soptions.clearSearch) {
 							var csv = getRes("search.resetTitle") || "Clear Search Value";
-							$("td", stbl).eq(2).append("<a title='" + csv + "' style='padding-right: 0.3em;padding-left: 0.3em;' class='clearsearchclass'>" + o.resetIcon + "</a>");
+							$("td", stbl).eq(2).append("<a title='" + csv + "' style='padding-right: 0.2em;padding-left: 0.3em;' class='clearsearchclass'>" + o.resetIcon + "</a>");
 						} else {
 							$("td", stbl).eq(2).hide();
 						}
@@ -593,6 +592,7 @@
 											if (soptions.defaultValue !== undefined) { $select.val(soptions.defaultValue); }
 											$select.attr({ name: cm.index || cm.name, id: "gs_" + cm.name });
 											if (soptions.attr) { $select.attr(soptions.attr); }
+											$select.addClass(dataFieldClass);
 											$select.css({ width: "100%" });
 											// preserve autoserch
 											bindEv.call($t, $select[0], soptions);
@@ -626,7 +626,7 @@
 									if (oSv) {
 										var elem = document.createElement("select");
 										elem.style.width = "100%";
-										$(elem).attr({ name: cm.index || cm.name, id: "gs_" + cm.name });
+										$(elem).attr({ name: cm.index || cm.name, id: "gs_" + cm.name, role: "listbox" });
 										var sv, ov, key, k;
 										if (typeof oSv === "string") {
 											so = oSv.split(delim);
@@ -649,12 +649,13 @@
 										}
 										if (soptions.defaultValue !== undefined) { $(elem).val(soptions.defaultValue); }
 										if (soptions.attr) { $(elem).attr(soptions.attr); }
+										$(elem).addClass(dataFieldClass);
 										$(thd).append(stbl);
 										bindEv.call($t, elem, soptions);
 										$("td", stbl).eq(1).append(elem);
-										jgrid.fullBoolFeedback.call($t, searchoptions.selectFilled, "jqGridSelectFilled", {
+										jgrid.fullBoolFeedback.call($t, soptions.selectFilled, "jqGridSelectFilled", {
 											elem: elem,
-											options: searchoptions,
+											options: searchoptions || editoptions || {},
 											cm: cm,
 											cmName: cm.name,
 											iCol: ci,
@@ -672,7 +673,7 @@
 							case "text":
 								var df = soptions.defaultValue !== undefined ? soptions.defaultValue : "";
 
-								$("td", stbl).eq(1).append("<input type='text' style='width:100%;padding:0;' name='" + (cm.index || cm.name) + "' id='gs_" + cm.name + "' value='" + df + "'/>");
+								$("td", stbl).eq(1).append("<input type='text' role='textbox' class='" + dataFieldClass + "' style='width:100%;padding:0;' name='" + (cm.index || cm.name) + "' id='gs_" + cm.name + "' value='" + df + "'/>");
 								$(thd).append(stbl);
 
 								if (soptions.attr) { $("input", thd).attr(soptions.attr); }
@@ -710,7 +711,7 @@
 								}
 								break;
 							case "custom":
-								$("td", stbl).eq(1).append("<span style='width:95%;padding:0;' name='" + (cm.index || cm.name) + "' id='gs_" + cm.name + "'/>");
+								$("td", stbl).eq(1).append("<span style='width:95%;padding:0;' class='" + dataFieldClass + "' name='" + (cm.index || cm.name) + "' id='gs_" + cm.name + "'/>");
 								$(thd).append(stbl);
 								try {
 									if ($.isFunction(soptions.custom_element)) {
@@ -845,7 +846,8 @@
 				var ts = this, i, cmi, skip = 0, $tr, $colHeader, th, $th, thStyle, iCol, cghi, numberOfColumns, titleText, cVisibleColumns,
 					colModel = ts.p.colModel, cml = colModel.length, ths = ts.grid.headers, $theadInTable,
 					$htable = $("table.ui-jqgrid-htable", ts.grid.hDiv),
-					$trLabels = $htable.children("thead").children("tr.ui-jqgrid-labels:last").addClass("jqg-second-row-header"),
+					$trLabels = $htable.children("thead").children("tr.ui-jqgrid-labels"),
+					$trLastWithLabels = $trLabels.last().addClass("jqg-second-row-header"),
 					$thead = $htable.children("thead"),
 					$firstHeaderRow = $htable.find(".jqg-first-row-header");
 				if ($firstHeaderRow[0] === undefined) {
@@ -908,13 +910,13 @@
 						$th.before($colHeader); // insert new column header before the current
 						$tr.append(th);         // move the current header in the next row
 
-						// set the coumter of headers which will be moved in the next row
+						// set the counter of headers which will be moved in the next row
 						skip = numberOfColumns - 1;
 					} else {
 						if (skip === 0) {
 							if (o.useColSpanStyle) {
 								// expand the header height to two rows
-								$th.attr("rowspan", "2");
+								$th.attr("rowspan", $trLabels.length + 1);
 							} else {
 								$("<th>", { role: "columnheader" })
 									.addClass("ui-state-default ui-th-column-header ui-th-" + ts.p.direction)
@@ -931,7 +933,7 @@
 				}
 				$theadInTable = $(ts).children("thead");
 				$theadInTable.prepend($firstHeaderRow);
-				$tr.insertAfter($trLabels);
+				$tr.insertAfter($trLastWithLabels);
 				$htable.append($theadInTable);
 
 				if (o.useColSpanStyle) {
@@ -977,11 +979,10 @@
 					if (cm[i].frozen !== true) {
 						break;
 						//nonFrozenIds.push("#jqgh_" + tid + "_" + jqID(cm[i].name));
-					}// else {
+					}
 					frozen = true;
 					maxfrozen = i;
 					frozenIds.push("#jqgh_" + tid + "_" + jqID(cm[i].name));
-					//}
 				}
 				if (p.sortable) {
 					$colHeaderRow = $(grid.hDiv).find(".ui-jqgrid-htable .ui-jqgrid-labels");
@@ -1009,6 +1010,11 @@
 					grid.fbDiv = $('<div style="position:absolute;left:0;top:' + (parseInt(top, 10) + parseInt(hth, 10) + 1) + 'px;overflow:hidden" class="frozen-bdiv ui-jqgrid-bdiv"></div>');
 					$(p.gView).append(grid.fhDiv);
 					var htbl = $(".ui-jqgrid-htable", p.gView).clone(true);
+					/*if ($t.ftoolbar) {
+						var $fixedSearchingFields = htbl.find(">thead>tr.ui-search-toolbar>th").filter(function (index) { return index <= maxfrozen; } );
+						// remove tabindex from the filter toolbar
+						$fixedSearchingFields.find("input,select,textarea").attr("tabindex","-1");
+					}*/
 					// groupheader support - only if useColSpanstyle is false
 					if (p.groupHeader) {
 						// TODO: remove all th which corresponds non-frozen columns. One can identify there by id
@@ -1068,6 +1074,11 @@
 					$(grid.fhDiv).append(htbl)
 						.mousemove(function (e) {
 							if (grid.resizing) { grid.dragMove(e); return false; }
+						})
+						.scroll(function () {
+							// the fhDiv can be scrolled because of tab keyboard navigation
+							// we prevent horizontal scrolling of fhDiv
+							this.scrollLeft = 0;
 						});
 					if (p.footerrow) {
 						var hbd = $(".ui-jqgrid-bdiv", p.gView).height();
@@ -1081,15 +1092,6 @@
 						$(ftbl).width(1);
 						$(grid.fsDiv).append(ftbl);
 					}
-					$self.bind("jqGridResizeStop.setFrozenColumns", function (e, w, index) {
-						var rhth = $(".ui-jqgrid-htable", grid.fhDiv);
-						$(rhth[0].rows[0].cells[index]).css("width", w);
-						$(grid.fbRows[0].cells[index]).css("width", w);
-						if (p.footerrow) {
-							var ftd = $(".ui-jqgrid-ftable", grid.fsDiv);
-							$(ftd[0].rows[0].cells[index]).css("width", w);
-						}
-					});
 					// sorting stuff
 					$self.bind("jqGridSortCol.setFrozenColumns", function (e, index, idxcol) {
 						var previousSelectedTh = $("tr.ui-jqgrid-labels:last th:eq(" + p.lastsort + ")", grid.fhDiv), newSelectedTh = $("tr.ui-jqgrid-labels:last th:eq(" + idxcol + ")", grid.fhDiv);
@@ -1112,16 +1114,6 @@
 					$(grid.bDiv).scroll(function () {
 						$(grid.fbDiv).scrollTop($(this).scrollTop());
 					});
-					/*if (p.sortable) {
-						$colHeaderRow = $(grid.fhDiv).find(".ui-jqgrid-htable .ui-jqgrid-labels");
-						//$colHeaderRow.sortable("destroy");
-						$self.jqGrid("setGridParam", {sortable: {options: {
-							items: nonFrozenIds.length > 0 ?
-									">th:not(:has(" + nonFrozenIds.join(",") + "),:hidden)" :
-									">th:not(:hidden)"
-						}}});
-						$self.jqGrid("sortableColumns", $colHeaderRow);
-					}*/
 					if (p.hoverrows === true) {
 						$(p.idSel).unbind("mouseover").unbind("mouseout");
 					}
@@ -1234,7 +1226,7 @@
 							myResize();
 						}, 50);
 					});
-					$self.bind("jqGridInlineEditRow.setFrozenColumns jqGridAfterEditCell.setFrozenColumns jqGridAfterRestoreCell.setFrozenColumns jqGridInlineAfterRestoreRow.setFrozenColumns jqGridAfterSaveCell.setFrozenColumns jqGridInlineAfterSaveRow.setFrozenColumns jqGridResetFrozenHeights.setFrozenColumns jqGridGroupingClickGroup.setFrozenColumns", myResize);
+					$self.bind("jqGridInlineEditRow.setFrozenColumns jqGridAfterEditCell.setFrozenColumns jqGridAfterRestoreCell.setFrozenColumns jqGridInlineAfterRestoreRow.setFrozenColumns jqGridAfterSaveCell.setFrozenColumns jqGridInlineAfterSaveRow.setFrozenColumns jqGridResetFrozenHeights.setFrozenColumns jqGridGroupingClickGroup.setFrozenColumns jqGridResizeStop.setFrozenColumns", myResize);
 					if (!grid.hDiv.loading) {
 						$self.triggerHandler("jqGridAfterGridComplete");
 					}

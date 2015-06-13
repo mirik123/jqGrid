@@ -125,7 +125,7 @@
 	height: auto;
 	padding: 0 2px 0 2px;
 }
-.ui-jqgrid .ui-jqgrid-htable th div {
+.ui-jqgrid .ui-jqgrid-htable .ui-jqgrid-labels th div {
 	overflow: hidden;
 	position: relative;
 	height: auto;
@@ -175,7 +175,7 @@
 	height: 21px;
 	width: .3em;
 	position: relative;
-	cursor: e-resize;
+	cursor: col-resize;
 	-webkit-touch-callout: none;
 	-khtml-user-select: none;
 	-ms-user-select: none;
@@ -331,11 +331,10 @@
 .ui-jqgrid .jqgrow > td > .cbox {
 	vertical-align: middle;
 }
-.ui-jqgrid .ui-jqgrid-resize-mark {
-	width: 2px;
+.ui-jqgrid > .ui-jqgrid-resize-mark,
+body > .ui-jqgrid-resize-mark {
+	width: 0px;
 	left: 0;
-	background-color: #777;
-	cursor: e-resize;
 	cursor: col-resize;
 	-webkit-touch-callout: none;
 	-khtml-user-select: none;
@@ -346,10 +345,11 @@
 	user-select: none;
 	position: absolute;
 	top: 0;
-	height: 100px;
+	/*height: 100px;*/
 	overflow: hidden;
 	display: none;
-	border: 0 none;
+	border-left-width: 1px;
+	border-right-width: 1px;
 	z-index: 99999;
 }
 
@@ -450,7 +450,6 @@ span.ui-jqgrid-cell-wrapper {
 .ui-jqgrid .ui-pg-table .ui-pg-selbox {
 	height: auto;
 	width: auto;
-	font-size: .8em;
 	margin: 0;
 	line-height: inherit;
 }

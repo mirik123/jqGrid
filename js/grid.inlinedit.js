@@ -437,8 +437,8 @@
 						}
 					});
 				}
-				$self.jqGrid("addRowData", o.rowID, o.initdata, o.position);
 				o.rowID = p.idPrefix + o.rowID;
+				$self.jqGrid("addRowData", o.rowID, o.initdata, o.position);
 				$("#" + jgrid.jqID(o.rowID), $t).addClass("jqgrid-new-row");
 				if (o.useFormatter) {
 					$("#" + jgrid.jqID(o.rowID) + " .ui-inline-edit", $t).click();
@@ -487,12 +487,7 @@
 						oMuligrid || {}
 					),
 					viewModalAlert = function () {
-						jgrid.viewModal("#alertmod_" + p.id, { gbox: p.gBox, toTop: o.alertToTop, jqm: true });
-						var $close = $("#alerthd_" + p.id).find(".ui-jqdialog-titlebar-close");
-						$close.attr({ tabindex: "0", href: "#", role: "button" });
-						setTimeout(function () {
-							$close.focus();
-						}, 50);
+						$t.modalAlert();
 					};
 
 				if (elem === undefined) {

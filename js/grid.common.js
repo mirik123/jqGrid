@@ -16,6 +16,10 @@
 		getGuiStyles = function (path, jqClasses) {
 			return jgrid.mergeCssClasses(jgrid.getRes(jgrid.guiStyles[this.p.guiStyle], path), jqClasses || "");
 		};
+
+	jgrid.jqModal = jgrid.jqModal || {};
+	$.extend(true, jgrid.jqModal, {toTop: true});
+
 	$.extend(jgrid, {
 		// Modal functions
 		// The methods showModal and closeModal will be used as callback of $.jqm jQuery plugin defined in jqModal.js
@@ -167,6 +171,7 @@
 				var parentZ = $(insertSelector).parents("*[role=dialog]").filter(":first").css("z-index");
 				if (parentZ) {
 					o.zIndex = parseInt(parentZ, 10) + 2;
+					o.toTop = true;
 				} else {
 					o.zIndex = 950;
 				}
@@ -192,7 +197,9 @@
 			if (o.resize === undefined) { o.resize = true; }
 			if (o.drag) {
 				if ($.fn.jqDrag) {
-					$(mh).addClass("ui-draggable"); //css("cursor","move");
+					// .ui-draggable .ui-dialog-titlebar {cursor: move}
+					//$(mw).addClass("ui-draggable"); //css("cursor","move");
+					$(mh).css("cursor","move");
 					$(mw).jqDrag(mh);
 				} else {
 					try {
@@ -221,7 +228,7 @@
 		},
 		viewModal: function (selector, o) {
 			o = $.extend(true, {
-				toTop: false,
+				//toTop: false,
 				overlay: 30,
 				modal: false,
 				overlayClass: "ui-widget-overlay",
@@ -287,7 +294,7 @@
 				cnt = "<div id='info_id'>";
 			cnt += "<div id='infocnt' style='margin:0px;padding-bottom:1em;width:100%;overflow:auto;position:relative;height:" + dh + ";" + cn + "'>" + content + "</div>";
 			if (c_b || buttstr !== "") {
-				cnt += "<hr class='ui-widget-content' style='margin:1px'/><div style='text-align:" + mopt.buttonalign +
+				cnt += "<hr class='" + getGuiStyles.call($t, "dialog.hr") + "' style='margin:1px'/><div style='text-align:" + mopt.buttonalign +
 					";padding:.8em 0 .5em 0;background-image:none;border-width: 1px 0 0 0;'>" +
 					(c_b ? jgrid.builderFmButon.call($t, "closedialog", c_b) : "") + buttstr + "</div>";
 			}
@@ -360,7 +367,7 @@
 				getRes = function (path) { return getGridRes.call($($t), path); },
 				errcap = getRes("errors.errcap"), edit = getRes("edit"), editMsg = edit.msg, bClose = edit.bClose;
 			function setAttributes(elm, atr, exl) {
-				var exclude = ["dataInit", "dataEvents", "dataUrl", "buildSelect", "sopt", "searchhidden", "defaultValue", "attr", "custom_element", "custom_value", "selectFilled"];
+				var exclude = ["dataInit", "dataEvents", "dataUrl", "buildSelect", "sopt", "searchhidden", "defaultValue", "attr", "custom_element", "custom_value", "selectFilled", "rowId", "mode"];
 				if (exl !== undefined && $.isArray(exl)) {
 					$.merge(exclude, exl);
 				}
@@ -383,7 +390,7 @@
 					if (vl === "&nbsp;" || vl === "&#160;" || (vl.length === 1 && vl.charCodeAt(0) === 160)) { vl = ""; }
 					elem.value = vl;
 					setAttributes(elem, options);
-					$(elem).attr({ "role": "textbox", "multiline": "true" });
+					$(elem).attr({ role: "textbox" }); // , "multiline": "true"
 					break;
 				case "checkbox": //what code for simple checkbox
 					elem = document.createElement("input");
@@ -397,7 +404,7 @@
 						} else {
 							elem.value = "on";
 						}
-						$(elem).attr("offval", "off");
+						$(elem).data("offval", "off");
 					} else {
 						var cbval = options.value.split(":");
 						if (vl === cbval[0]) {
@@ -405,14 +412,14 @@
 							elem.defaultChecked = true;
 						}
 						elem.value = cbval[0];
-						$(elem).attr("offval", cbval[1]);
+						$(elem).data("offval", cbval[1]);
 					}
 					setAttributes(elem, options, ["value"]);
-					$(elem).attr("role", "checkbox");
+					$(elem).attr({role: "checkbox", "aria-checked": elem.checked ? "true" : "false"});
 					break;
 				case "select":
 					elem = document.createElement("select");
-					elem.setAttribute("role", "select");
+					elem.setAttribute("role", "listbox");
 					var msl, ovm = [], cm, iCol;
 					iCol = p.iColByName[options.name];
 					cm = p.colModel[iCol];
@@ -569,7 +576,7 @@
 					try {
 						if ($.isFunction(options.custom_element)) {
 							var celm = options.custom_element.call($t, vl, options);
-							if (celm instanceof jQuery || celm instanceof HTMLElement || typeof celm === "string") {
+							if (celm instanceof jQuery || jgrid.isHTMLElement(celm) || typeof celm === "string") {
 								celm = $(celm).addClass("customelement").attr({ id: options.id, name: options.name });
 								$(elem).empty().append(celm);
 							} else {

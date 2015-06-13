@@ -194,10 +194,6 @@
 					}
 					sOutput = sNewOutput;
 				}
-				// Prepend prefix
-				sOutput = (opts.prefix) ? opts.prefix + sOutput : sOutput;
-				// Append suffix
-				sOutput = (opts.suffix) ? sOutput + opts.suffix : sOutput;
 				return sOutput;
 
 			}
@@ -241,14 +237,14 @@
 		cval = String(cval);
 		cval = String(cval).toLowerCase();
 		var bchk = cval.search(/(false|f|0|no|n|off|undefined)/i) < 0 ? " checked='checked' " : "";
-		return "<input type=\"checkbox\" " + bchk + " value=\"" + cval + "\" offval=\"no\" " + ds + "/>";
+		return "<input type=\"checkbox\" " + bchk + " value=\"" + cval + "\" data-offval=\"no\" " + ds + "/>";
 	};
 	$FnFmatter.checkbox.getCellBuilder = function (opts) {
 		var colModel = opts.colModel, op = $.extend({}, opts.checkbox), tagEnd;
 		if (colModel != null) {
 			op = $.extend({}, op, colModel.formatoptions || {});
 		}
-		tagEnd = "\" offval=\"no\" " + (op.disabled === true ? "disabled=\"disabled\"" : "") + "/>";
+		tagEnd = "\" data-offval=\"no\" " + (op.disabled === true ? "disabled=\"disabled\"" : "") + "/>";
 		return function (cval) {
 			if (fmatter.isEmpty(cval) || cval === undefined) { cval = defaultFormat(cval, op); }
 			cval = String(cval).toLowerCase();
@@ -431,16 +427,22 @@
 			}
 		}
 	};
-	var numberHelper = function (cellval, opts, formatType) {
-		var colModel = opts.colModel, op = $.extend({}, opts[formatType]);
-		if (colModel != null) {
-			op = $.extend({}, op, colModel.formatoptions || {});
-		}
-		if (fmatter.isEmpty(cellval)) {
-			return op.defaultValue;
-		}
-		return fmatter.NumberFormat(cellval, op);
-	};
+	var insertPrefixAndSuffix = function (sOutput, opts) {
+			// Prepend prefix
+			sOutput = (opts.prefix) ? opts.prefix + sOutput : sOutput;
+			// Append suffix
+			return (opts.suffix) ? sOutput + opts.suffix : sOutput;
+		},
+		numberHelper = function (cellval, opts, formatType) {
+			var colModel = opts.colModel, op = $.extend({}, opts[formatType]);
+			if (colModel != null) {
+				op = $.extend({}, op, colModel.formatoptions || {});
+			}
+			if (fmatter.isEmpty(cellval)) {
+				return insertPrefixAndSuffix(op.defaultValue, op);
+			}
+			return insertPrefixAndSuffix(fmatter.NumberFormat(cellval, op), op);
+		};
 	$FnFmatter.integer = function (cellval, opts) {
 		return numberHelper(cellval, opts, "integer");
 	};
@@ -457,11 +459,11 @@
 			op = $.extend({}, op, colModel.formatoptions || {});
 		}
 		var numberFormat = fmatter.NumberFormat,
-			defaultValue = op.defaultValue;
+			defaultValue = op.defaultValue ? insertPrefixAndSuffix(op.defaultValue, op) : "";
 
 		return function (cellValue) {
 			if (fmatter.isEmpty(cellValue)) { return defaultValue; }
-			return numberFormat(cellValue, op);
+			return insertPrefixAndSuffix(numberFormat(cellValue, op), op);
 		};
 	};
 	$FnFmatter.integer.getCellBuilder = function (options) {
@@ -645,9 +647,18 @@
 				$grid.jqGrid("restoreRow", rid, op.afterRestore);
 				break;
 			case "del":
+				op.delOptions = op.delOptions || {};
+				if (op.delOptions.top === undefined) {
+					op.delOptions.top = $tr.offset().top + $tr.outerHeight() - $grid.closest(".ui-jqgrid").offset().top;
+				}
 				$grid.jqGrid("delGridRow", rid, op.delOptions);
 				break;
 			case "formedit":
+				op.editOptions = op.editOptions || {};
+				if (op.editOptions.top === undefined) {
+					op.editOptions.top = $tr.offset().top + $tr.outerHeight() - $grid.closest(".ui-jqgrid").offset().top;
+					op.editOptions.recreateForm = true;
+				}
 				$grid.jqGrid("editGridRow", rid, op.editOptions);
 				break;
 			default:
