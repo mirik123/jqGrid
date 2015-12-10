@@ -252,7 +252,7 @@
 						return;
 					}
 					v = jgrid.getEditedValue.call($t, $(options.dataElement), cm, !formatter, options.editable);
-					cv = jgrid.checkValues.call($t, v, options.iCol);
+					cv = jgrid.checkValues.call($t, v, options.iCol, options.iRow);
 					if (cv[0] === false) {
 						return false;
 					}
